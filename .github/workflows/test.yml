@@ -1,0 +1,45 @@
+name: tests
+
+on:
+  push:
+    branches: ["19.0"]
+  pull_request:
+
+jobs:
+  client-tests:
+    name: fx_client unit tests (no Odoo)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests
+      - run: python serbian_fx/tests/test_fx_client.py -v
+
+  odoo-tests:
+    name: Odoo 19 integration tests
+    runs-on: ubuntu-latest
+    container:
+      image: odoo:19
+      options: --user root
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: odoo
+          POSTGRES_PASSWORD: odoo
+          POSTGRES_DB: postgres
+        options: >-
+          --health-cmd "pg_isready -U odoo"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run module tests
+        run: |
+          ln -s "$GITHUB_WORKSPACE/serbian_fx" /mnt/extra-addons/serbian_fx
+          odoo --db_host=postgres --db_user=odoo --db_password=odoo \
+               -d rsfx_ci -i serbian_fx --test-tags /serbian_fx \
+               --stop-after-init --log-level=test
