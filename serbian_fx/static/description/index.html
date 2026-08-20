@@ -1,0 +1,67 @@
+<section style="max-width: 860px; margin: 0 auto; font-family: sans-serif; color: #222;">
+    <div style="text-align: center; padding: 32px 16px; background: #122c54; border-radius: 8px; color: #fff;">
+        <h1 style="margin: 0 0 8px 0;">Serbian Exchange Rates</h1>
+        <p style="margin: 0; color: #f0b323; font-size: 18px;">
+            Daily RSD exchange rates: official NBS list by default,
+            commercial bank lists optional
+        </p>
+    </div>
+
+    <h2 style="margin-top: 40px;">What it does</h2>
+    <ul style="line-height: 1.7;">
+        <li>Fetches the daily exchange-rate list with a scheduled action.
+            Default source: the <strong>official National Bank of Serbia
+            list</strong>. Alternative sources: <strong>Alta Banka</strong>
+            (commercial spreads scraped from the bank's website) or any
+            <strong>custom endpoint</strong> speaking the module's JSON
+            contract.</li>
+        <li>Stores all five published rates per currency and day:
+            buy / middle / sell for wire transfers (<em>devize</em>) and
+            buy / sell for cash (<em>efektiva</em>), including the quote
+            parity (e.g. JPY is quoted per 100 units) and the source of
+            each row.</li>
+        <li>Writes the <strong>middle rate</strong> into the standard
+            <code>res.currency.rate</code>, so multicurrency accounting,
+            invoicing and reporting use it automatically. Designed for
+            companies with <strong>RSD</strong> as base currency.</li>
+        <li>Keeps full history: one record per currency per day, browsable
+            under <em>Accounting &rarr; Configuration &rarr; Serbian Exchange
+            Rates</em>, with a "Fetch rates now" button for manual refresh.</li>
+        <li>Historical backfill of past rates from the official NBS list.</li>
+    </ul>
+
+    <h2>Built-in JSON &amp; ECB-format API</h2>
+    <p>Read-only public endpoints let other internal tools consume the rates:</p>
+    <ul style="line-height: 1.7;">
+        <li><code>/rs_fx/rates</code> &mdash; latest list as JSON (base RSD)</li>
+        <li><code>/rs_fx/rates?currency=EUR&amp;history=30</code> &mdash; per-currency history</li>
+        <li><code>/rs_fx/rates/ecb</code> &mdash; European Central Bank
+            <code>eurofxref-daily.xml</code> structure, consumable by any ECB-format parser</li>
+    </ul>
+    <p>The JSON shape doubles as the custom-source contract: one database
+       running this module can feed others.</p>
+
+    <h2>Configuration (system parameters)</h2>
+    <ul style="line-height: 1.7;">
+        <li>No configuration required: install, activate the currencies you
+            need (EUR, USD, CHF, &hellip;), done &mdash; NBS is the default source.</li>
+        <li><code>rs_fx.rate_source = nbs | alta | custom</code> &mdash; choose
+            the daily source.</li>
+        <li><code>rs_fx.custom_url</code> &mdash; endpoint URL when the source
+            is <code>custom</code>.</li>
+        <li><code>rs_fx.update_currency_rates = 0</code> &mdash; keep the rates
+            in their own table without touching <code>res.currency.rate</code>.</li>
+        <li><code>rs_fx.ecb_url</code> &mdash; redirect the stock ECB provider
+            of Automatic Currency Rates to a self-hosted ECB-format feed.</li>
+    </ul>
+
+    <h2>External services</h2>
+    <p>
+        This module retrieves publicly published exchange rates over HTTPS
+        from a public mirror of the National Bank of Serbia rate list
+        (kurs.resenje.org) and, when selected as source, from
+        <strong>altabanka.rs</strong> (Alta Banka a.d. Beograd) or a custom
+        endpoint you configure. No customer data is collected or transmitted
+        &mdash; requests contain nothing but the date of the requested rate list.
+    </p>
+</section>

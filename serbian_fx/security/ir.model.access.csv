@@ -1,0 +1,3 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_rs_fx_rate_user,rs.fx.rate user,model_rs_fx_rate,account.group_account_readonly,1,0,0,0
+access_rs_fx_rate_manager,rs.fx.rate manager,model_rs_fx_rate,account.group_account_manager,1,1,1,1

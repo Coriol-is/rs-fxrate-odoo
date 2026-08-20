@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="rs_fx_rate_view_list" model="ir.ui.view">
+        <field name="name">rs.fx.rate.list</field>
+        <field name="model">rs.fx.rate</field>
+        <field name="arch" type="xml">
+            <list create="false" edit="false">
+                <header>
+                    <button name="action_fetch_rates" type="object"
+                            string="Fetch rates now" class="btn-primary"
+                            display="always"/>
+                </header>
+                <field name="date"/>
+                <field name="currency_id"/>
+                <field name="unit" optional="hide"/>
+                <field name="buy"/>
+                <field name="middle"/>
+                <field name="sell"/>
+                <field name="buy_cash" optional="hide"/>
+                <field name="sell_cash" optional="hide"/>
+                <field name="source" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="rs_fx_rate_view_search" model="ir.ui.view">
+        <field name="name">rs.fx.rate.search</field>
+        <field name="model">rs.fx.rate</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="currency_id"/>
+                <field name="date"/>
+                <filter name="group_by_date" string="Date" context="{'group_by': 'date'}"/>
+                <filter name="group_by_currency" string="Currency" context="{'group_by': 'currency_id'}"/>
+                <filter name="group_by_source" string="Source" context="{'group_by': 'source'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="rs_fx_rate_action" model="ir.actions.act_window">
+        <field name="name">Serbian Exchange Rates</field>
+        <field name="res_model">rs.fx.rate</field>
+        <field name="view_mode">list</field>
+    </record>
+
+    <menuitem id="rs_fx_rate_menu"
+              name="Serbian Exchange Rates"
+              parent="account.menu_finance_configuration"
+              action="rs_fx_rate_action"
+              sequence="100"/>
+</odoo>
