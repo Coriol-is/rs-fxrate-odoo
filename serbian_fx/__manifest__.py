@@ -7,7 +7,7 @@
     "category": "Accounting",
     "license": "LGPL-3",
     "author": "Coriolis Lab",
-    "website": "https://github.com/Coriol-is/serbian-fx-odoo",
+    "website": "https://github.com/Coriol-is/rs-fxrate-odoo",
     "support": "odoo@coriol.co",
     "images": ["static/description/banner.png"],
     "depends": ["account"],
