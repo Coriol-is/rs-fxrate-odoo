@@ -119,6 +119,23 @@ env.cr.commit()
 Idempotent: existing rows are never overwritten; weekends resolve to the
 preceding published list and dedupe naturally.
 
+## Tests
+
+- `serbian_fx/tests/test_fx_client.py` — pure unit tests for all three
+  source parsers (mocked HTTP, no network, no Odoo). Runs standalone:
+
+  ```bash
+  python3 serbian_fx/tests/test_fx_client.py
+  ```
+
+- `serbian_fx/tests/test_fx_rate.py` — Odoo integration tests (sources
+  mocked): source selection, upsert idempotency, `res.currency.rate`
+  writing with parity, parameter toggles, backfill dedupe. Run with:
+
+  ```bash
+  odoo-bin -d <test-db> -i serbian_fx --test-tags /serbian_fx --stop-after-init
+  ```
+
 ## Notes
 
 - License: LGPL-3. Support: odoo@coriol.co.
