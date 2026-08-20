@@ -30,17 +30,6 @@
         <li>Historical backfill of past rates from the official NBS list.</li>
     </ul>
 
-    <h2>Built-in JSON &amp; ECB-format API</h2>
-    <p>Read-only public endpoints let other internal tools consume the rates:</p>
-    <ul style="line-height: 1.7;">
-        <li><code>/rs_fx/rates</code> &mdash; latest list as JSON (base RSD)</li>
-        <li><code>/rs_fx/rates?currency=EUR&amp;history=30</code> &mdash; per-currency history</li>
-        <li><code>/rs_fx/rates/ecb</code> &mdash; European Central Bank
-            <code>eurofxref-daily.xml</code> structure, consumable by any ECB-format parser</li>
-    </ul>
-    <p>The JSON shape doubles as the custom-source contract: one database
-       running this module can feed others.</p>
-
     <h2>Configuration (system parameters)</h2>
     <ul style="line-height: 1.7;">
         <li>No configuration required: install, activate the currencies you

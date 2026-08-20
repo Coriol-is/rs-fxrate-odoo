@@ -4,11 +4,13 @@ Free Odoo module (`serbian_fx`, LGPL-3) bringing daily RSD exchange rates
 into Odoo: the **official National Bank of Serbia list by default**, with
 selectable commercial bank sources (currently **Alta Banka**) and custom
 endpoints. All five published rates stored daily, the middle rate wired into
-standard multicurrency accounting, full history, and a read-only API.
+standard multicurrency accounting, full history.
 
-A companion standalone service lives in
-[Coriol-is/alta-fx-api](https://github.com/Coriol-is/alta-fx-api) — the Alta
-scraper without Odoo, plus an ECB `eurofxref-daily.xml` drop-in feed.
+The module only *consumes* rate sources — it exposes no API of its own. A
+companion standalone service lives in
+[Coriol-is/alta-fx-api](https://github.com/Coriol-is/alta-fx-api): the Alta
+scraper with its own store and HTTP API, usable as a `custom` source here
+and as an ECB-format feed for stock Odoo.
 
 ## Features
 
@@ -18,11 +20,11 @@ scraper without Odoo, plus an ECB `eurofxref-daily.xml` drop-in feed.
   parity (e.g. JPY is quoted per 100). Idempotent upserts; every row carries
   its `source`.
 - **Sources** — `nbs` (official list, default), `alta` (commercial spreads
-  scraped from altabanka.rs), `custom` (any endpoint speaking this module's
-  JSON contract — e.g. another Odoo database running this module). All
-  Serbian sources publish the same middle rate: a bank's *srednji kurs* is
-  the NBS middle (verified to the fourth decimal), so switching sources
-  never changes what lands in accounting — only the stored spreads differ.
+  scraped from altabanka.rs), `custom` (any endpoint returning the JSON
+  contract below). All Serbian sources publish the same middle rate: a
+  bank's *srednji kurs* is the NBS middle (verified to the fourth decimal),
+  so switching sources never changes what lands in accounting — only the
+  stored spreads differ.
 - **Accounting integration** — the middle rate is written into
   `res.currency.rate` (global, `company_id = False`). Designed for **RSD**
   company currency: `rate = unit / middle`; skipped with a warning otherwise.
@@ -30,7 +32,6 @@ scraper without Odoo, plus an ECB `eurofxref-daily.xml` drop-in feed.
   Browse under *Accounting → Configuration → Serbian Exchange Rates*;
   manual refresh via the *Fetch rates now* button.
 - **Backfill** — historical rates from the official NBS list for any period.
-- **API** — public JSON and ECB-format XML endpoints.
 
 ## Install
 
@@ -45,44 +46,29 @@ scraper without Odoo, plus an ECB `eurofxref-daily.xml` drop-in feed.
 | Parameter | Default | Effect |
 |---|---|---|
 | `rs_fx.rate_source` | `nbs` | `nbs` — official NBS list via the [kurs.resenje.org](https://kurs.resenje.org) mirror. `alta` — Alta Banka commercial list scraped from altabanka.rs. `custom` — endpoint from `rs_fx.custom_url`. |
-| `rs_fx.custom_url` | unset | URL returning this module's JSON contract (see below); required when source is `custom`. |
+| `rs_fx.custom_url` | unset | URL returning the JSON contract below; required when source is `custom`. |
 | `rs_fx.update_currency_rates` | `1` | Set `0` to keep the rates in their own table without touching `res.currency.rate`. |
-| `rs_fx.ecb_url` | unset | Redirect the stock ECB provider of Automatic Currency Rates to an ECB-format feed you host (see [alta-fx-api](https://github.com/Coriol-is/alta-fx-api)). Unset = stock behaviour. |
+| `rs_fx.ecb_url` | unset | Redirect the stock ECB provider of Automatic Currency Rates to an ECB-format feed you host (e.g. [alta-fx-api](https://github.com/Coriol-is/alta-fx-api)'s `/eurofxref-daily.xml`). Unset = stock behaviour. |
 
-## JSON & ECB API
+## Custom source contract
 
-Public read-only endpoints (the rates are public data):
-
-```
-GET /rs_fx/rates                                  # latest full list
-GET /rs_fx/rates?currency=EUR                     # latest EUR
-GET /rs_fx/rates?currency=EUR&date=2026-08-19     # EUR on/before a date
-GET /rs_fx/rates?currency=EUR&history=30          # last 30 stored EUR rows
-GET /rs_fx/rates/ecb                              # ECB eurofxref-daily.xml format
-GET /rs_fx/rates/ecb?rate=sell&date=2026-08-19    # rate type + date
-```
-
-JSON response — this shape is also the `custom` source contract, so one
-database running the module can feed others:
+With `rs_fx.rate_source = custom`, the module GETs `rs_fx.custom_url` and
+expects:
 
 ```json
 {
-  "date": "2026-08-19",
-  "base": "RSD",
-  "source": "serbian_fx (NBS / Alta Banka)",
   "rates": [
     {"currency": "EUR", "date": "2026-08-19", "unit": 1,
      "buy": 117.0073, "middle": 117.3594, "sell": 117.7115,
-     "buy_cash": 116.5379, "sell_cash": 118.1809, "source": "nbs"}
+     "buy_cash": 116.5379, "sell_cash": 118.1809}
   ]
 }
 ```
 
-`/rs_fx/rates/ecb` mirrors the European Central Bank `eurofxref-daily.xml`
-structure (gesmes envelope, nested `Cube` elements) with **RSD as base**:
-`rate` = units of quoted currency per 1 RSD (`unit / middle` — the same
-value written into `res.currency.rate`). `rate=` selects
-middle/buy/sell/buy_cash/sell_cash, default middle.
+Per row, `currency`, `date` (YYYY-MM-DD) and `middle` are required; the
+rest defaults to zero (`unit` to 1). The
+[alta-fx-api](https://github.com/Coriol-is/alta-fx-api) `/rates` endpoint
+speaks exactly this contract.
 
 ## Source implementation notes
 
@@ -95,8 +81,6 @@ middle/buy/sell/buy_cash/sell_cash, default middle.
   DataTables `POST` to `admin-ajax.php` returning the current list as JSON.
   No browser, no HTML parsing. The nonce rotates daily; a fresh one is
   fetched on every run.
-- **Custom**: `GET rs_fx.custom_url`, expects the JSON contract above
-  (`date`, `currency`, `middle` required per row).
 - Adding a bank = one `fetch_<bank>_rates()` in
   `serbian_fx/models/fx_client.py` plus one selection entry in
   `fx_rate.py`. The client module has no Odoo imports and runs standalone:
@@ -119,7 +103,7 @@ env.cr.commit()
 Idempotent: existing rows are never overwritten; weekends resolve to the
 preceding published list and dedupe naturally.
 
-## Tests
+## Tests & CI
 
 - `serbian_fx/tests/test_fx_client.py` — pure unit tests for all three
   source parsers (mocked HTTP, no network, no Odoo). Runs standalone:
@@ -135,6 +119,9 @@ preceding published list and dedupe naturally.
   ```bash
   odoo-bin -d <test-db> -i serbian_fx --test-tags /serbian_fx --stop-after-init
   ```
+
+GitHub Actions runs both on every push and pull request (plain Python job +
+`odoo:19` container with `postgres:16`).
 
 ## Notes
 
