@@ -46,13 +46,10 @@ class RsFxRate(models.Model):
              "'custom': endpoint configured in rs_fx.custom_url.",
     )
 
-    _sql_constraints = [
-        (
-            "date_currency_uniq",
-            "unique(date, currency_id)",
-            "Only one exchange rate per currency per day.",
-        ),
-    ]
+    _date_currency_uniq = models.Constraint(
+        "UNIQUE(date, currency_id)",
+        "Only one exchange rate per currency per day.",
+    )
 
     # ------------------------------------------------------------------
     # Fetching
