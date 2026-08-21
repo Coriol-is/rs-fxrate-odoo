@@ -3,7 +3,7 @@
     "name": "Serbian Exchange Rates",
     "summary": "Daily RSD exchange rates: official NBS list by default, "
                "commercial bank lists (Alta Banka) optional",
-    "version": "19.0.3.0.0",
+    "version": "19.0.3.0.1",
     "category": "Accounting",
     "license": "LGPL-3",
     "author": "Coriolis Lab",
