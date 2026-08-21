@@ -99,6 +99,29 @@ class TestRsFxRate(TransactionCase):
             ), 1
         )
 
+    def test_button_as_accounting_manager(self):
+        """res.currency.rate writes are admin-only, while the list-view
+        button only needs accounting rights: the fetch must sudo the
+        res.currency.rate upsert (and nothing else) to succeed."""
+        user = self.env["res.users"].create({
+            "name": "FX Accountant",
+            "login": "fx_accountant",
+            "group_ids": [(6, 0, [
+                self.env.ref("base.group_user").id,
+                self.env.ref("account.group_account_manager").id,
+            ])],
+        })
+        with patch.object(
+            fx_client, "fetch_nbs_day", return_value=list(NBS_ROWS)
+        ):
+            action = self.Rate.with_user(user).action_fetch_rates()
+        self.assertEqual(action["params"]["type"], "success")
+        self.assertTrue(self.CurrencyRate.search([
+            ("currency_id", "=", self.eur.id),
+            ("name", "=", date(2026, 8, 19)),
+            ("company_id", "=", False),
+        ]))
+
     def test_button_warns_when_source_empty(self):
         with patch.object(fx_client, "fetch_nbs_day", return_value=[]):
             action = self.Rate.action_fetch_rates()

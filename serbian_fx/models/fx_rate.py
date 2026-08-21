@@ -255,7 +255,10 @@ class RsFxRate(models.Model):
         if currency == company_currency:
             return
 
-        CurrencyRate = self.env["res.currency.rate"]
+        # res.currency.rate is only writable by administrators, while the
+        # fetch runs with accounting rights (list-view button, cron): sudo
+        # just this model, not the whole fetch.
+        CurrencyRate = self.env["res.currency.rate"].sudo()
         values = {"rate": rate["unit"] / rate["middle"]}
         existing = CurrencyRate.search(
             [
