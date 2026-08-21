@@ -3,6 +3,8 @@ import logging
 import time
 from datetime import timedelta
 
+from psycopg2 import IntegrityError
+
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 
@@ -138,16 +140,31 @@ class RsFxRate(models.Model):
                 "sell_cash": rate["sell_cash"],
                 "source": source,
             }
-            existing = self.search(
-                [("date", "=", rate["date"]), ("currency_id", "=", currency.id)],
-                limit=1,
-            )
+            domain = [
+                ("date", "=", rate["date"]),
+                ("currency_id", "=", currency.id),
+            ]
+            existing = self.search(domain, limit=1)
             if existing:
                 existing.write(values)
             else:
-                self.create(
-                    {"date": rate["date"], "currency_id": currency.id, **values}
-                )
+                try:
+                    # A concurrent fetch (cron vs. list-view button) can
+                    # create the row between the search above and this
+                    # create, tripping the date/currency unique constraint.
+                    # The savepoint keeps the transaction usable so we can
+                    # fall back to writing the row the other one committed.
+                    with self.env.cr.savepoint():
+                        self.create({
+                            "date": rate["date"],
+                            "currency_id": currency.id,
+                            **values,
+                        })
+                except IntegrityError:
+                    conflicting = self.search(domain, limit=1)
+                    if not conflicting:
+                        raise  # not the race: some other constraint failed
+                    conflicting.write(values)
             written += 1
             self._update_currency_rate(currency, rate)
         return written

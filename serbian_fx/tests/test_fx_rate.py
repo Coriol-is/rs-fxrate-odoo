@@ -4,8 +4,11 @@
 from datetime import date
 from unittest.mock import patch
 
+from psycopg2 import IntegrityError
+
 from odoo.exceptions import UserError
 from odoo.tests.common import TransactionCase
+from odoo.tools import mute_logger
 
 from odoo.addons.serbian_fx.models import fx_client
 
@@ -73,6 +76,59 @@ class TestRsFxRate(TransactionCase):
         self.assertEqual(
             self.Rate.search_count([("currency_id", "=", self.eur.id)]), 1
         )
+
+    def _blind_first_search(self):
+        """Patch rs.fx.rate.search so the first lookup reports "no row yet",
+        the way it does when a concurrent fetch commits the row a moment
+        later. `calls` counts how many lookups the fetch really made."""
+        model_class = type(self.Rate)
+        original = model_class.search
+        state = {"blind": True, "calls": 0}
+
+        def search(records, *args, **kwargs):
+            state["calls"] += 1
+            if state["blind"]:
+                state["blind"] = False
+                return records.browse()
+            return original(records, *args, **kwargs)
+
+        return patch.object(model_class, "search", search), state
+
+    @mute_logger("odoo.sql_db")
+    def test_upsert_absorbs_concurrent_create(self):
+        """Search-then-create is not atomic: when the row appears in
+        between, the unique constraint must be absorbed and the existing
+        row updated instead of the fetch blowing up."""
+        self._fetch(rows=[NBS_ROWS[0]])
+        patcher, state = self._blind_first_search()
+        corrected = [dict(NBS_ROWS[0], middle=125.0)]
+        with patcher, patch.object(
+            fx_client, "fetch_nbs_day", return_value=corrected
+        ):
+            written = self.Rate._fetch_rates()
+
+        self.assertEqual(written, 1)
+        self.assertEqual(state["calls"], 2)  # blind lookup + fallback lookup
+        rows = self.Rate.search([
+            ("date", "=", date(2026, 8, 19)),
+            ("currency_id", "=", self.eur.id),
+        ])
+        self.assertEqual(len(rows), 1)  # no duplicate, constraint intact
+        self.assertEqual(rows.middle, 125.0)  # and the new values landed
+
+    @mute_logger("odoo.sql_db")
+    def test_upsert_reraises_unrelated_integrity_error(self):
+        """The fallback must not swallow an integrity error that is not the
+        race: with no conflicting row to write to, it has to surface."""
+        self._fetch(rows=[NBS_ROWS[0]])
+        model_class = type(self.Rate)
+        with patch.object(
+            model_class, "search", lambda records, *a, **kw: records.browse()
+        ), patch.object(
+            fx_client, "fetch_nbs_day", return_value=[NBS_ROWS[0]]
+        ):
+            with self.assertRaises(IntegrityError):
+                self.Rate._fetch_rates()
 
     def test_button_refresh_persists_and_does_not_raise(self):
         """A second click must keep its writes: raising here would roll the
