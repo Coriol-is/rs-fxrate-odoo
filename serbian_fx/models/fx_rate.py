@@ -58,7 +58,6 @@ class RsFxRate(models.Model):
     def _get_param(self, name, default=None):
         return self.env["ir.config_parameter"].sudo().get_param(name, default)
 
-    @api.model
     def action_fetch_rates(self):
         """Manual trigger (list view button); raises on failure."""
         created = self._fetch_rates()
