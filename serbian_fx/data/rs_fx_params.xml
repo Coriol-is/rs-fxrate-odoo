@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- Defaults, so the settings page and the cron start from a known
+         state instead of relying on implicit fallbacks in the code. -->
+    <record id="rs_fx_param_rate_source" model="ir.config_parameter">
+        <field name="key">rs_fx.rate_source</field>
+        <field name="value">nbs</field>
+    </record>
+    <record id="rs_fx_param_update_currency_rates" model="ir.config_parameter">
+        <field name="key">rs_fx.update_currency_rates</field>
+        <field name="value">1</field>
+    </record>
+</odoo>

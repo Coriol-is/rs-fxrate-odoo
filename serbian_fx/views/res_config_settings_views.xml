@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form" model="ir.ui.view">
+        <field name="name">res.config.settings.form.inherit.rs.fx</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="account.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//app[@name='account']" position="inside">
+                <block title="Serbian Exchange Rates" name="rs_fx_block">
+                    <setting id="rs_fx_source_setting"
+                             string="Rate source"
+                             help="Where the daily RSD rate list is fetched from. The cron runs every morning; the list view has a manual 'Fetch rates now' button.">
+                        <field name="rs_fx_rate_source" widget="radio"/>
+                        <div class="mt-2" invisible="rs_fx_rate_source != 'custom'">
+                            <label for="rs_fx_custom_url" class="o_light_label"/>
+                            <field name="rs_fx_custom_url"
+                                   placeholder="https://example.com/rates.json"
+                                   required="rs_fx_rate_source == 'custom'"/>
+                        </div>
+                    </setting>
+                    <setting id="rs_fx_currency_rate_setting"
+                             string="Update Odoo currency rates"
+                             help="Write the middle rate into the standard currency rate table. Only applies when the company currency is RSD.">
+                        <field name="rs_fx_update_currency_rates"/>
+                    </setting>
+                    <setting id="rs_fx_ecb_setting"
+                             string="ECB feed override"
+                             help="Enterprise only: serve the built-in 'European Central Bank' provider from your own eurofxref-format URL. Leave empty for stock behaviour.">
+                        <field name="rs_fx_ecb_url"
+                               placeholder="https://example.com/eurofxref-daily.xml"/>
+                    </setting>
+                    <div class="mt16">
+                        <button name="%(rs_fx_rate_action)d" type="action"
+                                string="Exchange Rates" icon="oi-arrow-right"
+                                class="btn-link"/>
+                    </div>
+                </block>
+            </xpath>
+        </field>
+    </record>
+</odoo>
