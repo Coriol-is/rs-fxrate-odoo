@@ -59,11 +59,25 @@ class RsFxRate(models.Model):
         return self.env["ir.config_parameter"].sudo().get_param(name, default)
 
     def action_fetch_rates(self):
-        """Manual trigger (list view button); raises on failure."""
-        created = self._fetch_rates()
-        if not created:
-            raise UserError(_("Exchange rates are already up to date."))
-        return True
+        """Manual trigger (list view button).
+
+        Reports the outcome with a notification rather than a UserError: an
+        exception escaping an RPC call rolls the cursor back, which would
+        discard the rows this very call just refreshed.
+        """
+        written = self._fetch_rates()
+        return {
+            "type": "ir.actions.client",
+            "tag": "display_notification",
+            "params": {
+                "type": "success" if written else "warning",
+                "message": (
+                    _("%s exchange rates written.", written) if written
+                    else _("The rate source returned nothing to store.")
+                ),
+                "next": {"type": "ir.actions.act_window_close"},
+            },
+        }
 
     @api.model
     def _cron_fetch_rates(self):
@@ -82,7 +96,7 @@ class RsFxRate(models.Model):
         Source is chosen by the system parameter rs_fx.rate_source:
         'nbs' (default), 'alta', or 'custom' (URL in rs_fx.custom_url).
 
-        Returns the number of rs.fx.rate rows created.
+        Returns the number of rs.fx.rate rows written (created or updated).
         """
         source = self._get_param("rs_fx.rate_source", "nbs")
         if source == "alta":
@@ -110,7 +124,7 @@ class RsFxRate(models.Model):
             currency.name: currency
             for currency in self.env["res.currency"].search([])
         }
-        created = 0
+        written = 0
         for rate in rates:
             currency = currencies.get(rate["currency"])
             if currency is None:
@@ -134,9 +148,9 @@ class RsFxRate(models.Model):
                 self.create(
                     {"date": rate["date"], "currency_id": currency.id, **values}
                 )
-                created += 1
+            written += 1
             self._update_currency_rate(currency, rate)
-        return created
+        return written
 
     # ------------------------------------------------------------------
     # Historical backfill

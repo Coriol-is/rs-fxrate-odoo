@@ -69,10 +69,40 @@ class TestRsFxRate(TransactionCase):
 
     def test_upsert_idempotent(self):
         self.assertEqual(self._fetch(), 2)
-        self.assertEqual(self._fetch(), 0)  # second run updates, creates none
+        self.assertEqual(self._fetch(), 2)  # second run updates the same two
         self.assertEqual(
             self.Rate.search_count([("currency_id", "=", self.eur.id)]), 1
         )
+
+    def test_button_refresh_persists_and_does_not_raise(self):
+        """A second click must keep its writes: raising here would roll the
+        cursor back and drop the values just refreshed."""
+        self._fetch()
+        self.CurrencyRate.search([("currency_id", "=", self.eur.id)]).unlink()
+        corrected = [dict(NBS_ROWS[0], middle=120.0)]
+        with patch.object(
+            fx_client, "fetch_nbs_day", return_value=corrected
+        ):
+            action = self.Rate.action_fetch_rates()
+
+        self.assertEqual(action["tag"], "display_notification")
+        self.assertEqual(action["params"]["type"], "success")
+        rate = self.Rate.search(
+            [("date", "=", date(2026, 8, 19)),
+             ("currency_id", "=", self.eur.id)]
+        )
+        self.assertEqual(rate.middle, 120.0)
+        self.assertEqual(
+            self.CurrencyRate.search_count(
+                [("currency_id", "=", self.eur.id),
+                 ("name", "=", date(2026, 8, 19))]
+            ), 1
+        )
+
+    def test_button_warns_when_source_empty(self):
+        with patch.object(fx_client, "fetch_nbs_day", return_value=[]):
+            action = self.Rate.action_fetch_rates()
+        self.assertEqual(action["params"]["type"], "warning")
 
     def test_source_alta(self):
         self.icp.set_param("rs_fx.rate_source", "alta")
