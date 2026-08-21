@@ -26,12 +26,33 @@ No Odoo imports, testable standalone:
     python3 -m serbian_fx.models.fx_client
 """
 
+import logging
 import re
 from datetime import datetime
 
 import requests
 
+_logger = logging.getLogger(__name__)
+
 TIMEOUT = 30
+
+
+def _validate_rates(rates, source):
+    """Drop rows no caller should ever store: a non-positive middle rate
+    (downstream code divides by it) or a negative spread. Zero spreads
+    stay — middle-only currencies are legitimately quoted that way."""
+    valid = []
+    for rate in rates:
+        if rate["middle"] <= 0 or any(
+            rate[key] < 0 for key in ("buy", "sell", "buy_cash", "sell_cash")
+        ):
+            _logger.warning(
+                "%s: skipping rate with non-positive middle or negative "
+                "spread: %s", source, rate,
+            )
+            continue
+        valid.append(rate)
+    return valid
 
 # ---------------------------------------------------------------------------
 # NBS — official list, via the public mirror kurs.resenje.org
@@ -68,7 +89,7 @@ def fetch_nbs_day(day, session=None):
             "buy_cash": float(row.get("cash_buy") or 0),
             "sell_cash": float(row.get("cash_sell") or 0),
         })
-    return rates
+    return _validate_rates(rates, "NBS")
 
 
 # ---------------------------------------------------------------------------
@@ -162,7 +183,9 @@ def fetch_alta_rates(session=None):
     # Guard against the server-side filter ever widening: keep only the
     # most recent date.
     latest = max(rate["date"] for rate in rates)
-    return [rate for rate in rates if rate["date"] == latest]
+    return _validate_rates(
+        [rate for rate in rates if rate["date"] == latest], "Alta Banka"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -195,6 +218,7 @@ def fetch_custom_rates(url, session=None):
             "buy_cash": float(row.get("buy_cash") or 0),
             "sell_cash": float(row.get("sell_cash") or 0),
         })
+    rates = _validate_rates(rates, "custom endpoint")
     if not rates:
         raise ValueError("Custom rate endpoint returned no usable rates: %s" % url)
     return rates

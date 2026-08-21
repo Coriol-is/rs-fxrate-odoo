@@ -203,5 +203,61 @@ class TestFetchCustomRates(unittest.TestCase):
             )
 
 
+class TestRateValidation(unittest.TestCase):
+    """Rows with a non-positive middle or a negative spread must never
+    reach the caller: they would store zero/negative rates and break the
+    unit / middle division downstream. Zero spreads stay valid (see
+    TestFetchNbsDay.test_middle_only_zero_spreads)."""
+
+    def test_nbs_negative_middle_skipped(self):
+        data = {"rates": NBS_DATA["rates"] + [
+            {"code": "BAD", "date": "2026-08-19", "date_from": "2026-08-19",
+             "parity": 1, "exchange_middle": -1.0},
+        ]}
+        session = FakeSession({"kurs.resenje.org": FakeResponse(json_data=data)})
+        with self.assertLogs(fx_client._logger, "WARNING"):
+            rates = fx_client.fetch_nbs_day(date(2026, 8, 19), session=session)
+        self.assertNotIn("BAD", [r["currency"] for r in rates])
+        self.assertEqual(len(rates), 2)  # EUR and ATS survive
+
+    def test_custom_negative_spread_skipped(self):
+        data = {"rates": [
+            {"currency": "EUR", "date": "2026-08-19", "middle": 117.3594,
+             "buy": -1.0},
+            {"currency": "CHF", "date": "2026-08-19", "middle": 124.82},
+        ]}
+        session = FakeSession({"example.com": FakeResponse(json_data=data)})
+        with self.assertLogs(fx_client._logger, "WARNING"):
+            rates = fx_client.fetch_custom_rates(
+                "https://example.com/rates", session=session
+            )
+        self.assertEqual([r["currency"] for r in rates], ["CHF"])
+
+    def test_custom_all_invalid_raises(self):
+        data = {"rates": [
+            {"currency": "EUR", "date": "2026-08-19", "middle": -5.0},
+        ]}
+        session = FakeSession({"example.com": FakeResponse(json_data=data)})
+        with self.assertLogs(fx_client._logger, "WARNING"), \
+                self.assertRaises(ValueError):
+            fx_client.fetch_custom_rates(
+                "https://example.com/rates", session=session
+            )
+
+    def test_alta_negative_middle_skipped(self):
+        data = {"data": ALTA_DATA["data"] + [
+            ["2.026,00", "19/08/2026 00:00", "999", "BAD", "1",
+             "115,0000", "-117,3594", "119,5775", "115,8924", "118,8264"],
+        ]}
+        session = FakeSession({
+            "kursna-lista-2": FakeResponse(text=ALTA_PAGE),
+            "admin-ajax.php": FakeResponse(json_data=data),
+        })
+        with self.assertLogs(fx_client._logger, "WARNING"):
+            rates = fx_client.fetch_alta_rates(session=session)
+        self.assertNotIn("BAD", [r["currency"] for r in rates])
+        self.assertEqual(len(rates), 2)  # EUR and JPY survive
+
+
 if __name__ == "__main__":
     unittest.main()
