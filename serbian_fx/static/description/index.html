@@ -1,11 +1,10 @@
 <section style="max-width: 860px; margin: 0 auto; font-family: sans-serif; color: #222;">
-    <div style="text-align: center; padding: 32px 16px; background: #122c54; border-radius: 8px; color: #fff;">
-        <h1 style="margin: 0 0 8px 0;">Serbian Exchange Rates</h1>
-        <p style="margin: 0; color: #f0b323; font-size: 18px;">
-            Daily RSD exchange rates: official NBS list by default,
-            commercial bank lists optional
-        </p>
-    </div>
+    <img src="banner.png" alt="Serbian Exchange Rates for Odoo 19"
+         style="width: 100%; height: auto; display: block; border-radius: 8px;"/>
+    <p style="margin: 12px 0 0 0; text-align: center; color: #122c54; font-size: 18px;">
+        Daily RSD exchange rates: official NBS list by default,
+        commercial bank lists optional
+    </p>
 
     <h2 style="margin-top: 40px;">What it does</h2>
     <ul style="line-height: 1.7;">
@@ -21,19 +20,41 @@
             parity (e.g. JPY is quoted per 100 units) and the source of
             each row.</li>
         <li>Writes the <strong>middle rate</strong> into the standard
-            <code>res.currency.rate</code>, so multicurrency accounting,
-            invoicing and reporting use it automatically. Designed for
-            companies with <strong>RSD</strong> as base currency.</li>
+            <code>res.currency.rate</code> &mdash; the table Odoo itself uses
+            everywhere &mdash; so multicurrency invoicing, vendor bills,
+            pricelists, eCommerce and reporting convert at the official rate
+            with nothing else to set up. Designed for companies with
+            <strong>RSD</strong> as base currency.</li>
+        <li>Everything is configured from a normal settings page under
+            <em>Accounting &rarr; Configuration &rarr; Settings &rarr; Serbian
+            Exchange Rates</em>: source, custom endpoint, currency-rate sync,
+            ECB feed override. No developer mode needed.</li>
         <li>Keeps full history: one record per currency per day, browsable
             under <em>Accounting &rarr; Configuration &rarr; Serbian Exchange
             Rates</em>, with a "Fetch rates now" button for manual refresh.</li>
         <li>Historical backfill of past rates from the official NBS list.</li>
     </ul>
 
-    <h2>Configuration (system parameters)</h2>
+    <h2>Multicurrency invoicing</h2>
+    <p style="line-height: 1.7;">
+        Supported out of the box. An EUR customer invoice, a USD vendor bill
+        or a foreign-currency pricelist converts at the NBS rate published
+        for that document's date. Two things to know: Odoo stores a single
+        rate per currency per day, so conversion always uses the NBS middle
+        rate (bank buy/sell spreads stay in this module's own table, for
+        reference); and Odoo's built-in Automatic Currency Rates is an
+        Enterprise feature, so on <strong>Community</strong> this module is
+        what keeps your rates current instead of manual entry.
+    </p>
+
+    <h2>Configuration</h2>
     <ul style="line-height: 1.7;">
-        <li>No configuration required: install, activate the currencies you
-            need (EUR, USD, CHF, &hellip;), done &mdash; NBS is the default source.</li>
+        <li>No configuration required: install, set your company currency to
+            RSD, activate the currencies you need (EUR, USD, CHF, &hellip;),
+            done &mdash; NBS is the default source.</li>
+        <li>Everything below is editable from <em>Accounting &rarr;
+            Configuration &rarr; Settings</em>; the underlying system
+            parameters remain available for scripted setups.</li>
         <li><code>rs_fx.rate_source = nbs | alta | custom</code> &mdash; choose
             the daily source.</li>
         <li><code>rs_fx.custom_url</code> &mdash; endpoint URL when the source

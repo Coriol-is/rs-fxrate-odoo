@@ -28,8 +28,14 @@ and as an ECB-format feed for stock Odoo.
   so switching sources never changes what lands in accounting — only the
   stored spreads differ.
 - **Accounting integration** — the middle rate is written into
-  `res.currency.rate` (global, `company_id = False`). Designed for **RSD**
-  company currency: `rate = unit / middle`; skipped with a warning otherwise.
+  `res.currency.rate` (global, `company_id = False`), the table Odoo itself
+  uses everywhere, so multicurrency invoicing, bills, pricelists, eCommerce
+  and reporting convert at the official rate with nothing else to wire up.
+  Designed for **RSD** company currency: `rate = unit / middle`; skipped
+  with a warning otherwise.
+- **Settings page** — *Accounting → Configuration → Settings → Serbian
+  Exchange Rates*: pick the source, set the custom endpoint, toggle the
+  currency-rate sync, override the ECB feed. No developer mode needed.
 - **History** — one `rs.fx.rate` record per currency per day, never deleted.
   Browse under *Accounting → Configuration → Serbian Exchange Rates*;
   manual refresh via the *Fetch rates now* button.
@@ -39,11 +45,37 @@ and as an ECB-format feed for stock Odoo.
 
 1. Copy/symlink `serbian_fx` into your addons path (or install from the
    Odoo Apps store).
-2. Activate the currencies you need in *Accounting → Configuration →
+2. Set the company currency to **RSD** and enable multi-currency in
+   *Accounting → Configuration → Settings*.
+3. Activate the currencies you need in *Accounting → Configuration →
    Currencies* (only active currencies are stored).
-3. Install **Serbian Exchange Rates**. Done — NBS rates flow immediately.
+4. Install **Serbian Exchange Rates**. Done — NBS rates flow immediately,
+   every morning at 07:30 server time.
 
-## Configuration (system parameters)
+## Multicurrency invoicing
+
+Supported out of the box, because the module feeds Odoo's own exchange-rate
+table rather than a private one. An EUR customer invoice, a USD vendor bill,
+a foreign-currency pricelist in the shop or in events all convert at the NBS
+rate published for that document's date.
+
+Two caveats worth knowing:
+
+- **Middle rate only.** Odoo stores a single rate per currency per day, so
+  conversion always uses the NBS *srednji kurs*. Bank buy/sell spreads stay
+  in the module's own table for reference and reporting — Odoo will not use
+  them for document conversion.
+- **Community has no built-in alternative.** Automatic Currency Rates is an
+  Enterprise feature, so on Community the choice is this module or typing
+  rates in by hand. On Enterprise the module can also feed the stock ECB
+  provider instead — see `rs_fx.ecb_url` below.
+
+## Configuration
+
+*Accounting → Configuration → Settings → **Serbian Exchange Rates***: rate
+source, custom endpoint URL, currency-rate sync toggle and the ECB feed
+override. The form writes the system parameters below, so instances
+configured by hand keep working unchanged.
 
 | Parameter | Default | Effect |
 |---|---|---|
@@ -114,9 +146,10 @@ preceding published list and dedupe naturally.
   python3 serbian_fx/tests/test_fx_client.py
   ```
 
-- `serbian_fx/tests/test_fx_rate.py` — Odoo integration tests (sources
-  mocked): source selection, upsert idempotency, `res.currency.rate`
-  writing with parity, parameter toggles, backfill dedupe. Run with:
+- `serbian_fx/tests/test_fx_rate.py` and `test_config_settings.py` — Odoo
+  integration tests (sources mocked): source selection, upsert idempotency,
+  `res.currency.rate` writing with parity, manual-refresh behaviour,
+  settings round-trip, backfill dedupe. Run with:
 
   ```bash
   odoo-bin -d <test-db> -i serbian_fx --test-tags /serbian_fx --stop-after-init
