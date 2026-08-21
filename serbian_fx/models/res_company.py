@@ -38,7 +38,17 @@ class ResCompany(models.Model):
         _logger.info("Serbian FX: fetching ECB-format rates from %s", url)
         response = requests.get(url, timeout=30)
         response.raise_for_status()
-        root = ET.fromstring(response.content)
+        content = response.content
+        # stdlib ElementTree offers no switch to disable DTD processing,
+        # and eurofxref-format feeds never carry one: refuse instead of
+        # parsing (XXE / entity-expansion guard without a defusedxml
+        # dependency).
+        if b"<!DOCTYPE" in content or b"<!ENTITY" in content:
+            raise ValueError(
+                "Serbian FX: feed %s contains a DTD/entity declaration; "
+                "refusing to parse it" % url
+            )
+        root = ET.fromstring(content)
 
         date = None
         rates = {}
