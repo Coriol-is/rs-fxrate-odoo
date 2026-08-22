@@ -52,6 +52,10 @@ and as an ECB-format feed for stock Odoo.
 4. Install **Serbian Exchange Rates**. Done — NBS rates flow immediately,
    every morning at 07:30 server time.
 
+![Serbian Exchange Rates settings page](serbian_fx/static/description/settings-serbian-exchange-rates.png)
+
+*Accounting → Configuration → Settings → Serbian Exchange Rates.*
+
 ## Multicurrency invoicing
 
 Supported out of the box, because the module feeds Odoo's own exchange-rate
@@ -76,6 +80,8 @@ Two caveats worth knowing:
 source, custom endpoint URL, currency-rate sync toggle and the ECB feed
 override. The form writes the system parameters below, so instances
 configured by hand keep working unchanged.
+
+![Rate source and ECB feed override](serbian_fx/static/description/settings-rate-source.png)
 
 | Parameter | Default | Effect |
 |---|---|---|
@@ -119,6 +125,15 @@ speaks exactly this contract.
   `serbian_fx/models/fx_client.py` plus one selection entry in
   `fx_rate.py`. The client module has no Odoo imports and runs standalone:
   `python3 serbian_fx/models/fx_client.py` prints today's NBS and Alta lists.
+
+## Rate history
+
+One `rs.fx.rate` record per currency per day, never deleted, browsable under
+*Accounting → Configuration → Serbian Exchange Rates*. The *Fetch rates now*
+button refreshes the current day on demand; every row carries the source it
+came from.
+
+![Daily rate list with history](serbian_fx/static/description/rate-list-history.png)
 
 ## Historical backfill
 
