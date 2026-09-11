@@ -7,7 +7,7 @@
     "category": "Accounting",
     "license": "LGPL-3",
     "author": "Coriolis Lab",
-    "website": "https://github.com/Coriol-is/rs-fxrate-odoo",
+    "website": "https://coriol.co/odoo/",
     "support": "odoo@coriol.co",
     # First entry is the store cover: the Apps grid and product page render
     # it in a strict 2:1 box with background-size: cover, so anything not
