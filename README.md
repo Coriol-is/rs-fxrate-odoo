@@ -1,6 +1,6 @@
 ![Serbian Exchange Rates](serbian_fx/static/description/banner.png)
 
-# Serbian Exchange Rates for Odoo 19
+# Serbian Exchange Rates for Odoo 20
 
 Free Odoo module (`serbian_fx`, LGPL-3) bringing daily RSD exchange rates
 into Odoo: the **official National Bank of Serbia list by default**, with

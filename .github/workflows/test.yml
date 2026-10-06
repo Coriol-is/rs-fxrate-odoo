@@ -2,7 +2,7 @@ name: tests
 
 on:
   push:
-    branches: ["19.0"]
+    branches: ["20.0"]
   pull_request:
 
 jobs:
@@ -18,10 +18,10 @@ jobs:
       - run: python serbian_fx/tests/test_fx_client.py -v
 
   odoo-tests:
-    name: Odoo 19 integration tests
+    name: Odoo 20 integration tests
     runs-on: ubuntu-latest
     container:
-      image: odoo:19
+      image: odoo:20.0
       options: --user root
     services:
       postgres:
