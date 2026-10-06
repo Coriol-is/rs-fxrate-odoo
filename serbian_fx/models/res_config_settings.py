@@ -49,7 +49,7 @@ class ResConfigSettings(models.TransientModel):
     @api.model
     def get_values(self):
         res = super().get_values()
-        value = self.env["ir.config_parameter"].sudo().get_param(
+        value = self.env["ir.config_parameter"].sudo().get_str(
             UPDATE_RATES_PARAM, "1"
         )
         res["rs_fx_update_currency_rates"] = value not in (
@@ -59,7 +59,7 @@ class ResConfigSettings(models.TransientModel):
 
     def set_values(self):
         super().set_values()
-        self.env["ir.config_parameter"].sudo().set_param(
+        self.env["ir.config_parameter"].sudo().set_str(
             UPDATE_RATES_PARAM,
             "1" if self.rs_fx_update_currency_rates else "0",
         )

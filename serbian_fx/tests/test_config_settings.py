@@ -20,9 +20,9 @@ class TestRsFxSettings(TransactionCase):
         return settings
 
     def test_defaults_installed(self):
-        self.assertEqual(self.icp.get_param("rs_fx.rate_source"), "nbs")
+        self.assertEqual(self.icp.get_str("rs_fx.rate_source"), "nbs")
         self.assertEqual(
-            self.icp.get_param("rs_fx.update_currency_rates"), "1"
+            self.icp.get_str("rs_fx.update_currency_rates"), "1"
         )
 
     def test_source_and_url_saved(self):
@@ -30,9 +30,9 @@ class TestRsFxSettings(TransactionCase):
             rs_fx_rate_source="custom",
             rs_fx_custom_url="https://example.com/rates.json",
         )
-        self.assertEqual(self.icp.get_param("rs_fx.rate_source"), "custom")
+        self.assertEqual(self.icp.get_str("rs_fx.rate_source"), "custom")
         self.assertEqual(
-            self.icp.get_param("rs_fx.custom_url"),
+            self.icp.get_str("rs_fx.custom_url"),
             "https://example.com/rates.json",
         )
 
@@ -41,7 +41,7 @@ class TestRsFxSettings(TransactionCase):
         # A plain config_parameter boolean would unlink the row here, and
         # _update_currency_rate reads a missing value as enabled.
         self.assertEqual(
-            self.icp.get_param("rs_fx.update_currency_rates"), "0"
+            self.icp.get_str("rs_fx.update_currency_rates"), "0"
         )
         self.assertFalse(
             self.Settings.default_get(["rs_fx_update_currency_rates"]).get(
@@ -53,7 +53,7 @@ class TestRsFxSettings(TransactionCase):
         self._apply(rs_fx_update_currency_rates=False)
         self._apply(rs_fx_update_currency_rates=True)
         self.assertEqual(
-            self.icp.get_param("rs_fx.update_currency_rates"), "1"
+            self.icp.get_str("rs_fx.update_currency_rates"), "1"
         )
         self.assertTrue(
             self.Settings.default_get(["rs_fx_update_currency_rates"]).get(
@@ -64,8 +64,8 @@ class TestRsFxSettings(TransactionCase):
     def test_ecb_url_saved_and_cleared(self):
         self._apply(rs_fx_ecb_url="https://example.com/eurofxref-daily.xml")
         self.assertEqual(
-            self.icp.get_param("rs_fx.ecb_url"),
+            self.icp.get_str("rs_fx.ecb_url"),
             "https://example.com/eurofxref-daily.xml",
         )
         self._apply(rs_fx_ecb_url=False)
-        self.assertFalse(self.icp.get_param("rs_fx.ecb_url"))
+        self.assertFalse(self.icp.get_str("rs_fx.ecb_url"))

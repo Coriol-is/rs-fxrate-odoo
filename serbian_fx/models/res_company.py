@@ -30,7 +30,7 @@ class ResCompany(models.Model):
 
     def _parse_ecb_data(self, available_currencies):
         url = (
-            self.env["ir.config_parameter"].sudo().get_param("rs_fx.ecb_url")
+            self.env["ir.config_parameter"].sudo().get_str("rs_fx.ecb_url")
         )
         if not url:
             return super()._parse_ecb_data(available_currencies)

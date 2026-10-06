@@ -184,7 +184,7 @@ class TestRsFxRate(TransactionCase):
         self.assertEqual(action["params"]["type"], "warning")
 
     def test_source_alta(self):
-        self.icp.set_param("rs_fx.rate_source", "alta")
+        self.icp.set_str("rs_fx.rate_source", "alta")
         created = self._fetch(rows=ALTA_ROWS, fetcher="fetch_alta_rates")
         self.assertEqual(created, 1)
         eur = self.Rate.search([("currency_id", "=", self.eur.id)])
@@ -192,13 +192,13 @@ class TestRsFxRate(TransactionCase):
         self.assertEqual(eur.buy, 115.1296)
 
     def test_source_custom_requires_url(self):
-        self.icp.set_param("rs_fx.rate_source", "custom")
+        self.icp.set_str("rs_fx.rate_source", "custom")
         with self.assertRaises(UserError):
             self.Rate._fetch_rates()
 
     def test_source_custom(self):
-        self.icp.set_param("rs_fx.rate_source", "custom")
-        self.icp.set_param("rs_fx.custom_url", "https://example.com/rates")
+        self.icp.set_str("rs_fx.rate_source", "custom")
+        self.icp.set_str("rs_fx.custom_url", "https://example.com/rates")
         with patch.object(
             fx_client, "fetch_custom_rates", return_value=list(ALTA_ROWS)
         ) as mock_fetch:
@@ -209,7 +209,7 @@ class TestRsFxRate(TransactionCase):
         self.assertEqual(eur.source, "custom")
 
     def test_update_currency_rates_disabled(self):
-        self.icp.set_param("rs_fx.update_currency_rates", "0")
+        self.icp.set_str("rs_fx.update_currency_rates", "0")
         self._fetch()
         self.assertFalse(self.CurrencyRate.search([
             ("currency_id", "=", self.eur.id),

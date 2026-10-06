@@ -41,7 +41,7 @@ class TestEcbOverride(TransactionCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.env["ir.config_parameter"].sudo().set_param(
+        cls.env["ir.config_parameter"].sudo().set_str(
             "rs_fx.ecb_url", "https://example.com/eurofxref-daily.xml"
         )
 
