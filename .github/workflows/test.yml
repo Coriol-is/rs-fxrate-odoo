@@ -4,21 +4,31 @@ on:
   push:
     branches: ["19.0"]
   pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   client-tests:
     name: fx_client unit tests (no Odoo)
+    timeout-minutes: 20
     runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install requests
+      - run: python -m pip install -r requirements-ci.txt
       - run: python serbian_fx/tests/test_fx_client.py -v
 
   odoo-tests:
     name: Odoo 19 integration tests
+    timeout-minutes: 20
     runs-on: ubuntu-26.04
     container:
       image: odoo:19
@@ -38,8 +48,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run module tests
+        shell: bash
         run: |
+          set -o pipefail
           ln -s "$GITHUB_WORKSPACE/serbian_fx" /mnt/extra-addons/serbian_fx
           odoo --db_host=postgres --db_user=odoo --db_password=odoo \
                -d rsfx_ci -i serbian_fx --test-tags /serbian_fx \
-               --stop-after-init --log-level=test
+               --stop-after-init --log-level=test 2>&1 | tee /tmp/odoo-test.log
+      - name: Assert the suite actually ran and passed
+        shell: bash
+        run: |
+          grep -E "odoo\.tests\.result: 0 failed, 0 error\(s\) of [1-9][0-9]* tests" /tmp/odoo-test.log
